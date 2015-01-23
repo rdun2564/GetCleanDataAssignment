@@ -37,13 +37,13 @@ dim(subjectTrain) # confirms number of rows as 7352
 unique(subjectTrain$V1) # Confirm 30 subjects
 names(subjectTrain) <- "subject"  # Rename variable name V1 to Subject 
 
-# Read in y-training data and allocate variable name to activityCode
+# Read in y-train data and allocate variable name to activityCode
 yTrain <- read.table("./train/y_train.txt", header = FALSE)
 names(yTrain) <- c("activityCode")
 dim(yTrain)  # confirms number of rows as 7352
 table(yTrain)  # Examine distribution of yTrain values
 
-# Combine columns for subject, activity and XTrain dataframes for Training Data
+# Combine columns for subjectTrain, yTrain and XTrainDataset dataframes for Training Data
 trainDataset <- cbind(subjectTrain, yTrain, xTrainDataset)
 dim(trainDataset)
 
@@ -69,7 +69,7 @@ names(yTest) <- c("activityCode")
 dim(yTest)  # confirms number of rows as 7352
 table(yTest)  # Examine distribution of yTrain values
 
-# Combine columns for subject, activityTest and xTest dataframes for test Dataset
+# Combine columns for subjectTest, yTest and xTestDataset dataframes for test Dataset
 testDataset <- cbind(subjectTest, yTest, xTestDataset)
 dim(testDataset)
 
@@ -133,7 +133,7 @@ str(samsungDatasetSummarised)
 
 # Remove dots from variable names as per Tidy Data specifications
 tidyVarNames <- gsub("\\.","", names(samsungDatasetSummarised))
-names(samsungDatasetSummarised) <- tidyvarnames
+names(samsungDatasetSummarised) <- tidyVarNames
 
 # Write samsungDatasetSummarised dataset to text file in working directory
 write.table(samsungDatasetSummarised, file = "samsungDatasetSummarised.txt", row.name=FALSE)
