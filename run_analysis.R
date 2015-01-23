@@ -1,18 +1,21 @@
 setwd("~/RData4/GDProject/UCIHARDataset")
 library(dplyr)
-# Read in activity labels
+# Read in activity labels and assign understandable variable names
 activityLabels <- read.table("activity_labels.txt", header = FALSE)
-activityLabels # check activity labels imported correctly
+names(activityLabels) <- c("activityCode", "activity")
+activityLabels # check activity variable names assigned correctly
 
 # Read in vector containing original Variable Names
 y <- read.table("features.txt", header = FALSE)
 str(y) # confirm 561 variable names
+
 # Adjust Variable names by removing parentheses and commas
 yAdjusted <- gsub("\\()", "", y$V2)
 yAdjusted <- gsub("\\(", "", yAdjusted)
 yAdjusted <- gsub("\\)", "", yAdjusted)
 yAdjusted <- gsub("\\,", "", yAdjusted)
 str(yAdjusted) # confirm 561 variable names
+
 # Then create vector with variable names representing means
 varWithMean <- grep("[Mm]ean", yAdjusted, value = TRUE)
 # Then create vector with variable names representing stds
@@ -34,19 +37,14 @@ dim(subjectTrain) # confirms number of rows as 7352
 unique(subjectTrain$V1) # Confirm 30 subjects
 names(subjectTrain) <- "subject"  # Rename variable name V1 to Subject 
 
-# Read in y-training data
+# Read in y-training data and allocate variable name to activityCode
 yTrain <- read.table("./train/y_train.txt", header = FALSE)
+names(yTrain) <- c("activityCode")
 dim(yTrain)  # confirms number of rows as 7352
 table(yTrain)  # Examine distribution of yTrain values
-# Merge activity Labels and yTrain Datasets
-activity <- merge(yTrain, activityLabels, by ="V1")
-dim(activity) # Confirm number of rows
-table(activity$V2) #Examine activity$V2 variable
-names(activity) <- c("activityCode", "activity")  # Rename variables V1 and V2 to activityCode and activity
 
 # Combine columns for subject, activity and XTrain dataframes for Training Data
-trainDataset <- cbind(subjectTrain, activity, xTrainDataset)
-trainDataset$datasource <- "train"
+trainDataset <- cbind(subjectTrain, yTrain, xTrainDataset)
 dim(trainDataset)
 
 #
@@ -65,19 +63,14 @@ dim(subjectTest) # confirms number of rows
 unique(subjectTest$V1) # Confirm number of subjects
 names(subjectTest) <- "subject"  # Rename variable name V1 to Subject 
 
-# Read in y-test data
+# Read in y-test data and allocate variable name activityCode
 yTest <- read.table("./test/y_test.txt", header = FALSE)
+names(yTest) <- c("activityCode")
 dim(yTest)  # confirms number of rows as 7352
 table(yTest)  # Examine distribution of yTrain values
-# Merge activity Labels and yTest Datasets
-activityTest <- merge(yTest, activityLabels, by ="V1")
-dim(activityTest) # Confirm number of rows
-table(activityTest$V2) #Examine activityTest$V2 variable
-names(activityTest) <- c("activityCode", "activity")  # Rename variables V1 and V2 to activityCode and activity
 
 # Combine columns for subject, activityTest and xTest dataframes for test Dataset
-testDataset <- cbind(subjectTest, activityTest, xTestDataset)
-testDataset$datasource <- "test"
+testDataset <- cbind(subjectTest, yTest, xTestDataset)
 dim(testDataset)
 
 # Combine trainDataset and testDataset together using rbind function
@@ -85,7 +78,7 @@ samsungDataset <- rbind(trainDataset, testDataset)
 dim(samsungDataset)
 
 # new Variable List
-newVariableNames <- c("subject","activityCode","activity","tBodyAcc.X.mean","tBodyAcc.Y.mean",
+newVariableNames <- c("subject","activityCode","tBodyAcc.X.mean","tBodyAcc.Y.mean",
                       "tBodyAcc.Z.mean","tGravityAcc.X.mean","tGravityAcc.Y.mean","tGravityAcc.Z.mean",
                       "tBodyAccJerk.X.mean","tBodyAccJerk.Y.mean","tBodyAccJerk.Z.mean","tBodyGyro.X.mean",
                       "tBodyGyro.Y.mean","tBodyGyro.Z.mean","tBodyGyroJerk.X.mean","tBodyGyroJerk.Y.mean",
@@ -109,17 +102,38 @@ newVariableNames <- c("subject","activityCode","activity","tBodyAcc.X.mean","tBo
                       "tBodyGyroJerkMag.std","fBodyAcc.X.std","fBodyAcc.Y.std","fBodyAcc.Z.std",
                       "fBodyAccJerk.X.std","fBodyAccJerk.Y.std","fBodyAccJerk.Z.std","fBodyGyro.X.std",
                       "fBodyGyro.Y.std","fBodyGyro.Z.std","fBodyAccMag.std","fBodyBodyAccJerkMag.std",
-                      "fBodyBodyGyroMag.std","fBodyBodyGyroJerkMag.std","datasource")
+                      "fBodyBodyGyroMag.std","fBodyBodyGyroJerkMag.std")
 
-# Replace old veriable list with new Variable List
+# Replace old variable list with new Variable List
 names(samsungDataset) <- newVariableNames
 
-# Remove datasource variable - it is a character vector so a mean cannot be determined
-samsungDataset <- samsungDataset[, -c(90)]
+# Merge activity Labels into samsungDataset
+samsungDataset <- merge(samsungDataset, activityLabels, by ="activityCode")
+dim(samsungDataset) # Confirm number of rows
+
+#Examine distribution of subjects by activityCode and by activity
+table(samsungDataset$subject, samsungDataset$activityCode) 
+table(samsungDataset$subject, samsungDataset$activity) 
 
 # Create summarised samsung dataset where the mean of each variable 
 # is calculated for each subject-activity level using group_by function
 # followwed by using the summarise_each function from dplyr
 samsungGroupBy <- group_by(samsungDataset, subject, activity)
 samsungDatasetSummarised <- summarise_each(samsungGroupBy, funs(mean))
+
+# Drop activityCode variable as it is redundant
+samsungDatasetSummarised <- samsungDatasetSummarised[-c(3)]
+
+# Make subject variable a factor
+samsungDatasetSummarised$subject <- factor(samsungDatasetSummarised$subject)
+
+# Check dimension and structure of samsungDatasetSummarised dataset                                           
+dim(samsungDatasetSummarised)
+str(samsungDatasetSummarised)
+
+# Remove dots from variable names as per Tidy Data specifications
+tidyVarNames <- gsub("\\.","", names(samsungDatasetSummarised))
+names(samsungDatasetSummarised) <- tidyvarnames
+
+# Write samsungDatasetSummarised dataset to text file in working directory
 write.table(samsungDatasetSummarised, file = "samsungDatasetSummarised.txt", row.name=FALSE)
